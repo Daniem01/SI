@@ -1,15 +1,18 @@
 from Agent.BaseAgent import BaseAgent
 from StateMachine.StateMachine import StateMachine
 from States.GoToCommandCenter import GoToCommandCenter
+from States.AttackPlayer import AttackPlayer
+from States.AgentConsts import AgentConsts
 
 
 class ReactiveAgent(BaseAgent):
     def __init__(self, id, name):
         super().__init__(id, name)
         dictionary = {
-        "GoToCommandCenter" : GoToCommandCenter("GoToCommandCenter")
+        "GoToCommandCenter" : GoToCommandCenter(AgentConsts.STATE_GO_CENTER),
+        "AttackPlayer" : AttackPlayer(AgentConsts.STATE_ATTACK)
         }
-        self.stateMachine = StateMachine("ReactiveBehavior",dictionary,"GoToCommandCenter")
+        self.stateMachine = StateMachine("ReactiveBehavior",dictionary,AgentConsts.STATE_GO_CENTER)
 
     #Metodo que se llama al iniciar el agente. No devuelve nada y sirve para contruir el agente
     def Start(self):

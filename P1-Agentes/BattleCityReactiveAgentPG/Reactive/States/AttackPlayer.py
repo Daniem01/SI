@@ -4,6 +4,7 @@ from States.AgentConsts import AgentConsts
 
 class AttackPlayer(State):
 
+    # Funcion init
     def __init__(self, id):
         super().__init__(id)
         self.obstaculos = [
@@ -12,6 +13,86 @@ class AttackPlayer(State):
             AgentConsts.OTHER,
         ]
 
+    def Start(self, agent):
+        print("Empieza estado AttackPlayer")
+
+    def End(self):
+        print("Fin del estado AttackPlayer")
+
+    # Funcion auxiliar para procesar los movimientos en update
+    def ProcesaMovimiento(self, intencionMov, perception):
+        if intencionMov == AgentConsts.MOVE_DOWN:
+            sensor_frente = AgentConsts.NEIGHBORHOOD_DOWN
+            distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_DOWN
+            sensor_lado1 = AgentConsts.NEIGHBORHOOD_RIGHT
+            distancia_lado1 = AgentConsts.NEIGHBORHOOD_DIST_RIGHT
+            sensor_lado2 = AgentConsts.NEIGHBORHOOD_LEFT
+            distancia_lado2 = AgentConsts.NEIGHBORHOOD_DIST_LEFT
+            accion_lado1 = AgentConsts.MOVE_RIGHT
+            accion_lado2 = AgentConsts.MOVE_LEFT
+            accion_atras = AgentConsts.MOVE_UP
+
+        elif intencionMov == AgentConsts.MOVE_UP:
+            sensor_frente = AgentConsts.NEIGHBORHOOD_UP
+            distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_UP
+            sensor_lado1 = AgentConsts.NEIGHBORHOOD_LEFT
+            distancia_lado1 = AgentConsts.NEIGHBORHOOD_DIST_LEFT
+            sensor_lado2 = AgentConsts.NEIGHBORHOOD_RIGHT
+            distancia_lado2 = AgentConsts.NEIGHBORHOOD_DIST_RIGHT
+            accion_lado1 = AgentConsts.MOVE_LEFT
+            accion_lado2 = AgentConsts.MOVE_RIGHT
+            accion_atras = AgentConsts.MOVE_DOWN
+
+        elif intencionMov == AgentConsts.MOVE_RIGHT:
+            sensor_frente = AgentConsts.NEIGHBORHOOD_RIGHT
+            distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_RIGHT
+            sensor_lado1 = AgentConsts.NEIGHBORHOOD_UP
+            distancia_lado1 = AgentConsts.NEIGHBORHOOD_DIST_UP
+            sensor_lado2 = AgentConsts.NEIGHBORHOOD_DOWN
+            distancia_lado2 = AgentConsts.NEIGHBORHOOD_DIST_DOWN
+            accion_lado1 = AgentConsts.MOVE_UP
+            accion_lado2 = AgentConsts.MOVE_DOWN
+            accion_atras = AgentConsts.MOVE_LEFT
+
+        else:
+            sensor_frente = AgentConsts.NEIGHBORHOOD_LEFT
+            distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_LEFT
+            sensor_lado1 = AgentConsts.NEIGHBORHOOD_DOWN
+            distancia_lado1 = AgentConsts.NEIGHBORHOOD_DIST_DOWN
+            sensor_lado2 = AgentConsts.NEIGHBORHOOD_UP
+            distancia_lado2 = AgentConsts.NEIGHBORHOOD_DIST_UP
+            accion_lado1 = AgentConsts.MOVE_DOWN
+            accion_lado2 = AgentConsts.MOVE_UP
+            accion_atras = AgentConsts.MOVE_RIGHT
+
+        # Si hay un obstaculo avanzamos sin disparar
+        if (
+            perception[sensor_frente] in self.obstaculos
+            and perception[distancia_frente] > 1
+        ):
+            return intencionMov, False
+        # Si el obstaculo nos cierra el paso miramos opciones
+        elif (
+            perception[sensor_frente] in self.obstaculos
+            and perception[distancia_frente] <= 1
+        ):
+            if (
+                perception[sensor_lado1] in self.obstaculos
+                and perception[distancia_lado1] <= 1
+            ):
+                if (
+                    perception[sensor_lado2] in self.obstaculos
+                    and perception[distancia_lado2] <= 1
+                ):
+                    return accion_atras, False
+                else:
+                    return accion_lado2, False
+            else:
+                return accion_lado1, False
+        else:
+            return intencionMov, True
+
+    # Update
     def Update(self, perception, map, agent):
         # Primero debemos mirar en que direccion debe ir el tanque
         # en funcion de donde esta el enemigo para "apuntar"
@@ -19,119 +100,20 @@ class AttackPlayer(State):
         # Si el agente y el jugador estan en la misma columna
         if perception[AgentConsts.AGENT_X] == perception[AgentConsts.PLAYER_X]:
             if perception[AgentConsts.AGENT_Y] < perception[AgentConsts.PLAYER_Y]:
-                # Si lo que hay en esa direccion es un muro indestructible avanzamos pero no disparamos
-                if (
-                    perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] > 1
-                ):
-                    return AgentConsts.MOVE_DOWN, False
-                # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                elif (
-                    perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] <= 1
-                ):
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] <= 1
-                    ):
-                        if (
-                            perception[AgentConsts.NEIGHBORHOOD_RIGHT]
-                            in self.obstaculos
-                            and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] <= 1
-                        ):
-                            return AgentConsts.MOVE_UP, False
-                        else:
-                            return AgentConsts.MOVE_RIGHT, False
-                    else:
-                        return AgentConsts.MOVE_LEFT, False
-                else:
-                    return AgentConsts.MOVE_DOWN, True
+                intencion = AgentConsts.MOVE_DOWN
+                return self.ProcesaMovimiento(intencion, perception)
             else:
-                # Si lo que hay en esa direccion es un muro indestructible avanzamos pero no disparamos
-                if (
-                    perception[AgentConsts.NEIGHBORHOOD_UP] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] > 1
-                ):
-                    return AgentConsts.MOVE_UP, False
-                # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                elif (
-                    perception[AgentConsts.NEIGHBORHOOD_UP] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] <= 1
-                ):
-                    # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] <= 1
-                    ):
-                        if (
-                            perception[AgentConsts.NEIGHBORHOOD_RIGHT]
-                            in self.obstaculos
-                            and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] <= 1
-                        ):
-                            return AgentConsts.MOVE_DOWN, False
-                        else:
-                            return AgentConsts.MOVE_RIGHT, False
-                    else:
-                        return AgentConsts.MOVE_LEFT, False
-                else:
-                    return AgentConsts.MOVE_UP, True
+                intencion = AgentConsts.MOVE_UP
+                return self.ProcesaMovimiento(intencion, perception)
 
         # Si el agente y el jugador estan en la misma fila
         elif perception[AgentConsts.AGENT_Y] == perception[AgentConsts.PLAYER_Y]:
             if perception[AgentConsts.AGENT_X] < perception[AgentConsts.PLAYER_X]:
-                # Si lo que hay en esa direccion es un muro indestructible avanzamos pero no disparamos
-                if (
-                    perception[AgentConsts.NEIGHBORHOOD_RIGHT] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] > 1
-                ):
-                    return AgentConsts.MOVE_RIGHT, False
-                # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                elif (
-                    perception[AgentConsts.NEIGHBORHOOD_RIGHT] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] <= 1
-                ):
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] <= 1
-                    ):
-                        if (
-                            perception[AgentConsts.NEIGHBORHOOD_UP] in self.obstaculos
-                            and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] <= 1
-                        ):
-                            return AgentConsts.MOVE_LEFT, False
-                        else:
-                            return AgentConsts.MOVE_UP, False
-                    else:
-                        return AgentConsts.MOVE_DOWN, False
-                else:
-                    return AgentConsts.MOVE_RIGHT, True
+                intencion = AgentConsts.MOVE_RIGHT
+                return self.ProcesaMovimiento(intencion, perception)
             else:
-                # Si lo que hay en esa direccion es un muro indestructible avanzamos pero no disparamos
-                if (
-                    perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] > 1
-                ):
-                    return AgentConsts.MOVE_LEFT, False
-                # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                elif (
-                    perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] <= 1
-                ):
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] <= 1
-                    ):
-                        if (
-                            perception[AgentConsts.NEIGHBORHOOD_UP] in self.obstaculos
-                            and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] <= 1
-                        ):
-                            return AgentConsts.MOVE_RIGHT, False
-                        else:
-                            return AgentConsts.MOVE_UP, False
-                    else:
-                        return AgentConsts.MOVE_DOWN, False
-                else:
-                    return AgentConsts.MOVE_LEFT, True
+                intencion = AgentConsts.MOVE_LEFT
+                return self.ProcesaMovimiento(intencion, perception)
 
         # Si no estan alineados pero esta cerca querremos que intente alinearse con el jugador
         # para poder intentar destruirlo
@@ -141,230 +123,32 @@ class AttackPlayer(State):
                 perception[AgentConsts.AGENT_X] - perception[AgentConsts.PLAYER_X]
             ) > abs(perception[AgentConsts.AGENT_Y] - perception[AgentConsts.PLAYER_Y]):
                 if perception[AgentConsts.AGENT_Y] < perception[AgentConsts.PLAYER_Y]:
-                    # Si lo que hay en esa direccion es un muro indestructible avanzamos pero no disparamos
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] > 1
-                    ):
-                        return AgentConsts.MOVE_DOWN, False
-                    # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                    elif (
-                        perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] <= 1
-                    ):
-                        if (
-                            perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                            and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] <= 1
-                        ):
-                            if (
-                                perception[AgentConsts.NEIGHBORHOOD_RIGHT]
-                                in self.obstaculos
-                                and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] <= 1
-                            ):
-                                return AgentConsts.MOVE_UP, False
-                            else:
-                                return AgentConsts.MOVE_RIGHT, False
-                        else:
-                            return AgentConsts.MOVE_LEFT, False
-                    else:
-                        return AgentConsts.MOVE_DOWN, True
+                    intencion = AgentConsts.MOVE_DOWN
+                    return self.ProcesaMovimiento(intencion, perception)
                 else:
-                    # Si lo que hay en esa direccion es un muro indestructible avanzamos pero no disparamos
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_UP] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] > 1
-                    ):
-                        return AgentConsts.MOVE_UP, False
-                    # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                    elif (
-                        perception[AgentConsts.NEIGHBORHOOD_UP] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] <= 1
-                    ):
-                        # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                        if (
-                            perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                            and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] <= 1
-                        ):
-                            if (
-                                perception[AgentConsts.NEIGHBORHOOD_RIGHT]
-                                in self.obstaculos
-                                and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] <= 1
-                            ):
-                                return AgentConsts.MOVE_DOWN, False
-                            else:
-                                return AgentConsts.MOVE_RIGHT, False
-                        else:
-                            return AgentConsts.MOVE_LEFT, False
-                    else:
-                        return AgentConsts.MOVE_UP, True
-            # Si es mas facil y por el eje x
+                    intencion = AgentConsts.MOVE_UP
+                    return self.ProcesaMovimiento(intencion, perception)
+            # Si es mas facil alinarlo con el eje y
             else:
                 if perception[AgentConsts.AGENT_X] < perception[AgentConsts.PLAYER_X]:
-                    # Si lo que hay en esa direccion es un muro indestructible avanzamos pero no disparamos
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_RIGHT] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] > 1
-                    ):
-                        return AgentConsts.MOVE_RIGHT, False
-                    # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                    elif (
-                        perception[AgentConsts.NEIGHBORHOOD_RIGHT] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] <= 1
-                    ):
-                        if (
-                            perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                            and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] <= 1
-                        ):
-                            if (
-                                perception[AgentConsts.NEIGHBORHOOD_UP]
-                                in self.obstaculos
-                                and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] <= 1
-                            ):
-                                return AgentConsts.MOVE_LEFT, False
-                            else:
-                                return AgentConsts.MOVE_UP, False
-                        else:
-                            return AgentConsts.MOVE_DOWN, False
-                    else:
-                        return AgentConsts.MOVE_RIGHT, True
+                    intencion = AgentConsts.MOVE_RIGHT
+                    return self.ProcesaMovimiento(intencion, perception) 
                 else:
-                    # Si lo que hay en esa direccion es un muro indestructible avanzamos pero no disparamos
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] > 1
-                    ):
-                        return AgentConsts.MOVE_LEFT, False
-                    # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                    elif (
-                        perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] <= 1
-                    ):
-                        if (
-                            perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                            and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] <= 1
-                        ):
-                            if (
-                                perception[AgentConsts.NEIGHBORHOOD_UP]
-                                in self.obstaculos
-                                and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] <= 1
-                            ):
-                                return AgentConsts.MOVE_RIGHT, False
-                            else:
-                                return AgentConsts.MOVE_UP, False
-                        else:
-                            return AgentConsts.MOVE_DOWN, False
-                    else:
-                        return AgentConsts.MOVE_LEFT, True
+                    intencion = AgentConsts.MOVE_LEFT
+                    return self.ProcesaMovimiento(intencion, perception)
 
-    def PocesaMovimiento(self, intencionMov, perception):
-        if intencionMov == AgentConsts.MOVE_DOWN:
-            if (
-                perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] > 1
-            ):
-                return AgentConsts.MOVE_DOWN, False
-            # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-            elif (
-                perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] <= 1
-            ):
-                if (
-                    perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] <= 1
-                ):
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_RIGHT] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] <= 1
-                    ):
-                        return AgentConsts.MOVE_UP, False
-                    else:
-                        return AgentConsts.MOVE_RIGHT, False
-                else:
-                    return AgentConsts.MOVE_LEFT, False
-            else:
-                return AgentConsts.MOVE_DOWN, True
+    def Transit(self, perception, map):
+        # Pasar a GoToCommandCerter
+        visible = perception[0:4]
 
-        elif intencionMov == AgentConsts.MOVE_UP:
-            if (
-                perception[AgentConsts.NEIGHBORHOOD_UP] in self.obstaculos
-                and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] > 1
-            ):
-                return AgentConsts.MOVE_UP, False
-            # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-            elif (
-                perception[AgentConsts.NEIGHBORHOOD_UP] in self.obstaculos
-                and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] <= 1
-            ):
-                # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                if (
-                    perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] <= 1
-                ):
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_RIGHT] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] <= 1
-                    ):
-                        return AgentConsts.MOVE_DOWN, False
-                    else:
-                        return AgentConsts.MOVE_RIGHT, False
-                else:
-                    return AgentConsts.MOVE_LEFT, False
-            else:
-                return AgentConsts.MOVE_UP, True
-
-        elif intencionMov == AgentConsts.MOVE_RIGHT:
-            if perception[AgentConsts.AGENT_X] < perception[AgentConsts.PLAYER_X]:
-                # Si lo que hay en esa direccion es un muro indestructible avanzamos pero no disparamos
-                if (
-                    perception[AgentConsts.NEIGHBORHOOD_RIGHT] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] > 1
-                ):
-                    return AgentConsts.MOVE_RIGHT, False
-                # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-                elif (
-                    perception[AgentConsts.NEIGHBORHOOD_RIGHT] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_RIGHT] <= 1
-                ):
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] <= 1
-                    ):
-                        if (
-                            perception[AgentConsts.NEIGHBORHOOD_UP] in self.obstaculos
-                            and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] <= 1
-                        ):
-                            return AgentConsts.MOVE_LEFT, False
-                        else:
-                            return AgentConsts.MOVE_UP, False
-                    else:
-                        return AgentConsts.MOVE_DOWN, False
-                else:
-                    return AgentConsts.MOVE_RIGHT, True
+        if (
+            AgentConsts.PLAYER not in visible and AgentConsts.OTHER not in visible
+        ) and (
+            abs(perception[AgentConsts.AGENT_X] - perception[AgentConsts.PLAYER_X]) >= 4
+            or abs(perception[AgentConsts.AGENT_Y] - perception[AgentConsts.PLAYER_Y])
+            >= 4
+        ):
+            return AgentConsts.STATE_GO_CENTER
 
         else:
-            # Si lo que hay en esa direccion es un muro indestructible avanzamos pero no disparamos
-            if (
-                perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] > 1
-            ):
-                return AgentConsts.MOVE_LEFT, False
-            # Si tenemos un muro indestructible o un rio al lado no iremos hacia alla
-            elif (
-                perception[AgentConsts.NEIGHBORHOOD_LEFT] in self.obstaculos
-                and perception[AgentConsts.NEIGHBORHOOD_DIST_LEFT] <= 1
-            ):
-                if (
-                    perception[AgentConsts.NEIGHBORHOOD_DOWN] in self.obstaculos
-                    and perception[AgentConsts.NEIGHBORHOOD_DIST_DOWN] <= 1
-                ):
-                    if (
-                        perception[AgentConsts.NEIGHBORHOOD_UP] in self.obstaculos
-                        and perception[AgentConsts.NEIGHBORHOOD_DIST_UP] <= 1
-                    ):
-                        return AgentConsts.MOVE_RIGHT, False
-                    else:
-                        return AgentConsts.MOVE_UP, False
-                else:
-                    return AgentConsts.MOVE_DOWN, False
-            else:
-                return AgentConsts.MOVE_LEFT, True
+            return None

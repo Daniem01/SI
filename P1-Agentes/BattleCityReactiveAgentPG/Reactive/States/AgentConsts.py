@@ -37,3 +37,7 @@ class AgentConsts:
     LIFE = 7
     SEMI_BREKABLE = 8
     SEMI_UNBREKABLE = 9
+
+    # Estados
+    STATE_GO_CENTER = "GoToCommandCenter"
+    STATE_ATTACK = "AttackPlayer"
