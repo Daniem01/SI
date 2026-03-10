@@ -99,15 +99,18 @@ class AttackPlayer(State):
             return self.ProcesaMovimiento(intencion, perception, False)
 
     def Transit(self, perception, map):
-        if isinstance(perception, bool) or perception is None:
-            return AgentConsts.STATE_ATTACK
-        
-        visible = perception[0:4]
-        dist_x = abs(perception[AgentConsts.AGENT_X] - perception[AgentConsts.PLAYER_X])
-        dist_y = abs(perception[AgentConsts.AGENT_Y] - perception[AgentConsts.PLAYER_Y])
+        if isinstance(perception, bool) or perception is None: return AgentConsts.STATE_ATTACK
 
-        # Si el jugador ya no es visible o se ha alejado mucho
-        if (AgentConsts.PLAYER not in visible and AgentConsts.OTHER not in visible) and (dist_x >= 4 or dist_y >= 4):
+        px, py = perception[AgentConsts.PLAYER_X], perception[AgentConsts.PLAYER_Y]
+        ax, ay = perception[AgentConsts.AGENT_X], perception[AgentConsts.AGENT_Y]
+
+        # Si el jugador muere se vuelve a GTCC
+        if px < 0:
+            return AgentConsts.STATE_GO_CENTER 
+
+        # Si se aleja mucho el jugador volvemos a GTCC
+        distancia = abs(ax - px) + abs(ay - py)
+        if distancia > 11.0:
             return AgentConsts.STATE_GO_CENTER
-        else:
-            return AgentConsts.STATE_ATTACK
+
+        return AgentConsts.STATE_ATTACK

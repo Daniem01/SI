@@ -24,23 +24,24 @@ class GoToCommandCenter(State):
             self.Reset()
         return self.action,True
     
-    def Transit(self,perception, map):
-        if isinstance(perception, bool) or perception is None:
-            return AgentConsts.STATE_GO_CENTER
-        
-        visible = perception[0:4]
+    def Transit(self, perception, map):
+        if isinstance(perception, bool) or perception is None: return AgentConsts.STATE_GO_CENTER
 
-        if (
-            AgentConsts.PLAYER in visible or AgentConsts.OTHER in visible
-        ) or (
-            abs(perception[AgentConsts.AGENT_X] - perception[AgentConsts.PLAYER_X]) < 4
-            and abs(perception[AgentConsts.AGENT_Y] - perception[AgentConsts.PLAYER_Y])
-            < 4
-        ):
-            return AgentConsts.STATE_ATTACK
+        px, py = perception[AgentConsts.PLAYER_X], perception[AgentConsts.PLAYER_Y]
+        ax, ay = perception[AgentConsts.AGENT_X], perception[AgentConsts.AGENT_Y]
+        cx, cy = perception[AgentConsts.COMMAND_CENTER_X], perception[AgentConsts.COMMAND_CENTER_Y]
 
-        else:
-            return AgentConsts.STATE_GO_CENTER
+        # Buscar la salida
+        #if cx < 0 or px < 0:
+        #    return AgentConsts.STATE_FIND_EXIT
+
+        # Si detectamos al jugador cerca cambiamos a attackPlayer
+        if px != -1:
+            distancia = abs(ax - px) + abs(ay - py)
+            if distancia < 7.0:
+                return AgentConsts.STATE_ATTACK
+            
+        return AgentConsts.STATE_GO_CENTER
     
     def Reset(self):
         self.action = random.randint(1,4)
