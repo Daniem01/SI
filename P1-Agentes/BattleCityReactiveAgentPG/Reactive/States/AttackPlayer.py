@@ -14,7 +14,7 @@ class AttackPlayer(State):
     def Start(self, agent):
         print("Empieza estado AttackPlayer")
 
-    def End(self, agent):
+    def End(self):
         print("Fin del estado AttackPlayer")
 
     # CAMBIO 2: Añadido parámetro 'puede_disparar' para controlar el fuego

@@ -12,7 +12,7 @@ class GoToCommandCenter(State):
     def Start(self, agent):
         print("Inicio de estado GoToCommandCenter")
 
-    def End(self, agent):
+    def End(self):
         print("Fin de estado GoToCommandCenter")
 
     def Update(self, perception, map, agent):
