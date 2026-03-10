@@ -94,6 +94,8 @@ class AttackPlayer(State):
 
     # Update
     def Update(self, perception, map, agent):
+        if isinstance(perception, bool) or perception is None:
+            return "none", False
         # Primero debemos mirar en que direccion debe ir el tanque
         # en funcion de donde esta el enemigo para "apuntar"
 
@@ -138,6 +140,9 @@ class AttackPlayer(State):
                     return self.ProcesaMovimiento(intencion, perception)
 
     def Transit(self, perception, map):
+        if isinstance(perception, bool) or perception is None:
+            return "none", False
+        
         # Pasar a GoToCommandCerter
         visible = perception[0:4]
 
