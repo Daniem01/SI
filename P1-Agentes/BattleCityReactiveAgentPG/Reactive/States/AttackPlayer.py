@@ -1,10 +1,8 @@
 from StateMachine.State import State
 from States.AgentConsts import AgentConsts
 
-
 class AttackPlayer(State):
 
-    # Funcion init
     def __init__(self, id):
         super().__init__(id)
         self.obstaculos = [
@@ -16,11 +14,11 @@ class AttackPlayer(State):
     def Start(self, agent):
         print("Empieza estado AttackPlayer")
 
-    def End(self):
+    def End(self, agent):
         print("Fin del estado AttackPlayer")
 
-    # Funcion auxiliar para procesar los movimientos en update
-    def ProcesaMovimiento(self, intencionMov, perception):
+    # CAMBIO 2: Añadido parámetro 'puede_disparar' para controlar el fuego
+    def ProcesaMovimiento(self, intencionMov, perception, puede_disparar):
         if intencionMov == AgentConsts.MOVE_DOWN:
             sensor_frente = AgentConsts.NEIGHBORHOOD_DOWN
             distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_DOWN
@@ -31,7 +29,6 @@ class AttackPlayer(State):
             accion_lado1 = AgentConsts.MOVE_RIGHT
             accion_lado2 = AgentConsts.MOVE_LEFT
             accion_atras = AgentConsts.MOVE_UP
-
         elif intencionMov == AgentConsts.MOVE_UP:
             sensor_frente = AgentConsts.NEIGHBORHOOD_UP
             distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_UP
@@ -42,7 +39,6 @@ class AttackPlayer(State):
             accion_lado1 = AgentConsts.MOVE_LEFT
             accion_lado2 = AgentConsts.MOVE_RIGHT
             accion_atras = AgentConsts.MOVE_DOWN
-
         elif intencionMov == AgentConsts.MOVE_RIGHT:
             sensor_frente = AgentConsts.NEIGHBORHOOD_RIGHT
             distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_RIGHT
@@ -53,7 +49,6 @@ class AttackPlayer(State):
             accion_lado1 = AgentConsts.MOVE_UP
             accion_lado2 = AgentConsts.MOVE_DOWN
             accion_atras = AgentConsts.MOVE_LEFT
-
         else:
             sensor_frente = AgentConsts.NEIGHBORHOOD_LEFT
             distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_LEFT
@@ -65,95 +60,54 @@ class AttackPlayer(State):
             accion_lado2 = AgentConsts.MOVE_UP
             accion_atras = AgentConsts.MOVE_RIGHT
 
-        # Si hay un obstaculo avanzamos sin disparar
-        if (
-            perception[sensor_frente] in self.obstaculos
-            and perception[distancia_frente] > 1
-        ):
+        if (perception[sensor_frente] in self.obstaculos and perception[distancia_frente] > 1):
             return intencionMov, False
-        # Si el obstaculo nos cierra el paso miramos opciones
-        elif (
-            perception[sensor_frente] in self.obstaculos
-            and perception[distancia_frente] <= 1
-        ):
-            if (
-                perception[sensor_lado1] in self.obstaculos
-                and perception[distancia_lado1] <= 1
-            ):
-                if (
-                    perception[sensor_lado2] in self.obstaculos
-                    and perception[distancia_lado2] <= 1
-                ):
+        elif (perception[sensor_frente] in self.obstaculos and perception[distancia_frente] <= 1):
+            if (perception[sensor_lado1] in self.obstaculos and perception[distancia_lado1] <= 1):
+                if (perception[sensor_lado2] in self.obstaculos and perception[distancia_lado2] <= 1):
                     return accion_atras, False
                 else:
                     return accion_lado2, False
             else:
                 return accion_lado1, False
         else:
-            return intencionMov, True
+            return intencionMov, puede_disparar
 
-    # Update
     def Update(self, perception, map, agent):
         if isinstance(perception, bool) or perception is None:
             return "none", False
-        # Primero debemos mirar en que direccion debe ir el tanque
-        # en funcion de donde esta el enemigo para "apuntar"
 
-        # Si el agente y el jugador estan en la misma columna
-        if perception[AgentConsts.AGENT_X] == perception[AgentConsts.PLAYER_X]:
-            if perception[AgentConsts.AGENT_Y] < perception[AgentConsts.PLAYER_Y]:
-                intencion = AgentConsts.MOVE_DOWN
-                return self.ProcesaMovimiento(intencion, perception)
-            else:
-                intencion = AgentConsts.MOVE_UP
-                return self.ProcesaMovimiento(intencion, perception)
+        # Como hay decimales es dificil que sea exactas ciertas comparaciones con las posiciones asi que usamos aproximaciones
+        ax, ay = perception[AgentConsts.AGENT_X], perception[AgentConsts.AGENT_Y]
+        px, py = perception[AgentConsts.PLAYER_X], perception[AgentConsts.PLAYER_Y]
+        
+        alineado_x = abs(ax - px) < 0.5
+        alineado_y = abs(ay - py) < 0.5
 
-        # Si el agente y el jugador estan en la misma fila
-        elif perception[AgentConsts.AGENT_Y] == perception[AgentConsts.PLAYER_Y]:
-            if perception[AgentConsts.AGENT_X] < perception[AgentConsts.PLAYER_X]:
-                intencion = AgentConsts.MOVE_RIGHT
-                return self.ProcesaMovimiento(intencion, perception)
-            else:
-                intencion = AgentConsts.MOVE_LEFT
-                return self.ProcesaMovimiento(intencion, perception)
-
-        # Si no estan alineados pero esta cerca querremos que intente alinearse con el jugador
-        # para poder intentar destruirlo
+        if alineado_x:
+            intencion = AgentConsts.MOVE_DOWN if ay < py else AgentConsts.MOVE_UP
+            return self.ProcesaMovimiento(intencion, perception, True)
+        elif alineado_y:
+            intencion = AgentConsts.MOVE_RIGHT if ax < px else AgentConsts.MOVE_LEFT
+            return self.ProcesaMovimiento(intencion, perception, True) 
         else:
-            # Si el jugador es mas facil alinearlo en el eje x
-            if abs(
-                perception[AgentConsts.AGENT_X] - perception[AgentConsts.PLAYER_X]
-            ) > abs(perception[AgentConsts.AGENT_Y] - perception[AgentConsts.PLAYER_Y]):
-                if perception[AgentConsts.AGENT_Y] < perception[AgentConsts.PLAYER_Y]:
-                    intencion = AgentConsts.MOVE_DOWN
-                    return self.ProcesaMovimiento(intencion, perception)
-                else:
-                    intencion = AgentConsts.MOVE_UP
-                    return self.ProcesaMovimiento(intencion, perception)
-            # Si es mas facil alinarlo con el eje y
+            # Si no está alineado busca alinearse para atacar
+            if abs(ax - px) > abs(ay - py):
+                intencion = AgentConsts.MOVE_DOWN if ay < py else AgentConsts.MOVE_UP
             else:
-                if perception[AgentConsts.AGENT_X] < perception[AgentConsts.PLAYER_X]:
-                    intencion = AgentConsts.MOVE_RIGHT
-                    return self.ProcesaMovimiento(intencion, perception) 
-                else:
-                    intencion = AgentConsts.MOVE_LEFT
-                    return self.ProcesaMovimiento(intencion, perception)
+                intencion = AgentConsts.MOVE_RIGHT if ax < px else AgentConsts.MOVE_LEFT
+            return self.ProcesaMovimiento(intencion, perception, False)
 
     def Transit(self, perception, map):
         if isinstance(perception, bool) or perception is None:
-            return "none", False
+            return AgentConsts.STATE_ATTACK
         
-        # Pasar a GoToCommandCerter
         visible = perception[0:4]
+        dist_x = abs(perception[AgentConsts.AGENT_X] - perception[AgentConsts.PLAYER_X])
+        dist_y = abs(perception[AgentConsts.AGENT_Y] - perception[AgentConsts.PLAYER_Y])
 
-        if (
-            AgentConsts.PLAYER not in visible and AgentConsts.OTHER not in visible
-        ) and (
-            abs(perception[AgentConsts.AGENT_X] - perception[AgentConsts.PLAYER_X]) >= 4
-            or abs(perception[AgentConsts.AGENT_Y] - perception[AgentConsts.PLAYER_Y])
-            >= 4
-        ):
+        # Si el jugador ya no es visible o se ha alejado mucho
+        if (AgentConsts.PLAYER not in visible and AgentConsts.OTHER not in visible) and (dist_x >= 4 or dist_y >= 4):
             return AgentConsts.STATE_GO_CENTER
-
         else:
             return AgentConsts.STATE_ATTACK
