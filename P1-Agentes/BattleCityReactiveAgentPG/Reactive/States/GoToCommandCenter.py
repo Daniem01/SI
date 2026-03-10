@@ -12,16 +12,22 @@ class GoToCommandCenter(State):
     def Start(self, agent):
         print("Inicio de estado GoToCommandCenter")
 
-    def End(self):
+    def End(self, agent):
         print("Fin de estado GoToCommandCenter")
 
     def Update(self, perception, map, agent):
+        if isinstance(perception, bool) or perception is None:
+            return "none", False
+    
         self.updateTime += perception[AgentConsts.TIME]
         if self.updateTime > 1.0:
             self.Reset()
         return self.action,True
     
     def Transit(self,perception, map):
+        if isinstance(perception, bool) or perception is None:
+            return AgentConsts.STATE_GO_CENTER
+        
         visible = perception[0:4]
 
         if (
