@@ -151,4 +151,4 @@ class AttackPlayer(State):
             return AgentConsts.STATE_GO_CENTER
 
         else:
-            return None
+            return AgentConsts.STATE_ATTACK

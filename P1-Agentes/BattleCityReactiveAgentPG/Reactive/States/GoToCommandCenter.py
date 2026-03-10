@@ -34,7 +34,7 @@ class GoToCommandCenter(State):
             return AgentConsts.STATE_ATTACK
 
         else:
-            return None
+            return AgentConsts.STATE_GO_CENTER
     
     def Reset(self):
         self.action = random.randint(1,4)
