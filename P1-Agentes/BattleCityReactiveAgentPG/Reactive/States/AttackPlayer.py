@@ -5,7 +5,7 @@ class AttackPlayer(State):
 
     def __init__(self, id):
         super().__init__(id)
-        self.obstaculos = [
+        self.indestructibles = [
             AgentConsts.UNBREAKABLE,
             AgentConsts.SEMI_UNBREKABLE,
             AgentConsts.OTHER,
@@ -17,8 +17,8 @@ class AttackPlayer(State):
     def End(self):
         print("Fin del estado AttackPlayer")
 
-    # CAMBIO 2: Añadido parámetro 'puede_disparar' para controlar el fuego
-    def ProcesaMovimiento(self, intencionMov, perception, puede_disparar):
+    def ProcesaMovimiento(self, intencionMov, perception, alineado):
+        # Down
         if intencionMov == AgentConsts.MOVE_DOWN:
             sensor_frente = AgentConsts.NEIGHBORHOOD_DOWN
             distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_DOWN
@@ -29,6 +29,7 @@ class AttackPlayer(State):
             accion_lado1 = AgentConsts.MOVE_RIGHT
             accion_lado2 = AgentConsts.MOVE_LEFT
             accion_atras = AgentConsts.MOVE_UP
+        #Up
         elif intencionMov == AgentConsts.MOVE_UP:
             sensor_frente = AgentConsts.NEIGHBORHOOD_UP
             distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_UP
@@ -39,6 +40,7 @@ class AttackPlayer(State):
             accion_lado1 = AgentConsts.MOVE_LEFT
             accion_lado2 = AgentConsts.MOVE_RIGHT
             accion_atras = AgentConsts.MOVE_DOWN
+        # Right
         elif intencionMov == AgentConsts.MOVE_RIGHT:
             sensor_frente = AgentConsts.NEIGHBORHOOD_RIGHT
             distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_RIGHT
@@ -49,6 +51,7 @@ class AttackPlayer(State):
             accion_lado1 = AgentConsts.MOVE_UP
             accion_lado2 = AgentConsts.MOVE_DOWN
             accion_atras = AgentConsts.MOVE_LEFT
+        #Left
         else:
             sensor_frente = AgentConsts.NEIGHBORHOOD_LEFT
             distancia_frente = AgentConsts.NEIGHBORHOOD_DIST_LEFT
@@ -60,18 +63,20 @@ class AttackPlayer(State):
             accion_lado2 = AgentConsts.MOVE_UP
             accion_atras = AgentConsts.MOVE_RIGHT
 
-        if (perception[sensor_frente] in self.obstaculos and perception[distancia_frente] > 1):
-            return intencionMov, False
-        elif (perception[sensor_frente] in self.obstaculos and perception[distancia_frente] <= 1):
-            if (perception[sensor_lado1] in self.obstaculos and perception[distancia_lado1] <= 1):
-                if (perception[sensor_lado2] in self.obstaculos and perception[distancia_lado2] <= 1):
-                    return accion_atras, False
+        disparar = alineado or (perception[sensor_frente] == AgentConsts.BRICK)
+
+        if (perception[sensor_frente] in self.indestructibles and perception[distancia_frente] > 1):
+            return intencionMov, disparar
+        elif (perception[sensor_frente] in self.indestructibles and perception[distancia_frente] <= 1):
+            if (perception[sensor_lado1] in self.indestructibles and perception[distancia_lado1] <= 1):
+                if (perception[sensor_lado2] in self.indestructibles and perception[distancia_lado2] <= 1):
+                    return accion_atras, disparar
                 else:
-                    return accion_lado2, False
+                    return accion_lado2, disparar
             else:
-                return accion_lado1, False
+                return accion_lado1, disparar
         else:
-            return intencionMov, puede_disparar
+            return intencionMov, disparar
 
     def Update(self, perception, map, agent):
         if isinstance(perception, bool) or perception is None:
