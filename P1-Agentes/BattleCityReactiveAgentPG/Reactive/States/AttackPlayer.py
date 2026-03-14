@@ -89,8 +89,64 @@ class AttackPlayer(State):
         alineado_x = abs(ax - px) < 0.5
         alineado_y = abs(ay - py) < 0.5
 
+<<<<<<< Updated upstream
         if alineado_x:
             intencion = AgentConsts.MOVE_DOWN if ay < py else AgentConsts.MOVE_UP
+=======
+        # SIEMPRE calcular esto primero
+        alineado_x = abs(ax - px) < 0.8
+        alineado_y = abs(ay - py) < 0.8
+
+        # stuck detection
+        if self.prev_pos == (ax, ay) and self.last_action is not None:
+            self.stuck_count += 1
+        else:
+            self.stuck_count = 0
+        self.prev_pos = (ax, ay)
+
+        # distancia al jugador
+        dist = abs(ax - px) + abs(ay - py)
+        if self.avoid_steps > 0 and self.prev_distance is not None and dist < self.prev_distance:
+            self.avoid_steps = 0
+            self.avoid_direction = None
+
+        # if currently avoiding, stick to avoid_direction for limited steps
+        if self.avoid_steps > 0 and self.avoid_direction is not None:
+            print("ATT continuing avoidance", self.avoid_direction, "steps", self.avoid_steps)
+            intencion = self.avoid_direction
+            self.avoid_steps -= 1
+        else:
+            alineado_x = abs(ax - px) < 0.8
+            alineado_y = abs(ay - py) < 0.8
+
+            if alineado_x:
+                intencion = AgentConsts.MOVE_DOWN if ay < py else AgentConsts.MOVE_UP
+            elif alineado_y:
+                intencion = AgentConsts.MOVE_RIGHT if ax < px else AgentConsts.MOVE_LEFT
+            else:
+                # Intentamos alinearnos con el tanque enemigo para tener linea de fuego
+                dx = abs(ax - px)
+                dy = abs(ay - py)
+                if dx > dy:
+                    intencion = AgentConsts.MOVE_RIGHT if ax < px else AgentConsts.MOVE_LEFT
+                elif dx < dy:
+                    intencion = AgentConsts.MOVE_DOWN if ay < py else AgentConsts.MOVE_UP
+                else:
+                    if self.last_intention is not None:
+                        intencion = self.last_intention
+                    else:
+                        intencion = AgentConsts.MOVE_RIGHT if ax < px else AgentConsts.MOVE_LEFT
+
+        # If stuck a few ticks, force right turn
+        if self.stuck_count > 2:
+            intencion = AgentConsts.MOVE_RIGHT
+            self.stuck_count = 0
+
+        # Guarda la intención anterior para evitar bailes 
+        self.last_intention = intencion
+        self.prev_distance = dist
+        if alineado_x or alineado_y:
+>>>>>>> Stashed changes
             return self.ProcesaMovimiento(intencion, perception, True)
         elif alineado_y:
             intencion = AgentConsts.MOVE_RIGHT if ax < px else AgentConsts.MOVE_LEFT
@@ -115,7 +171,7 @@ class AttackPlayer(State):
 
         # Si se aleja mucho el jugador volvemos a GTCC
         distancia = abs(ax - px) + abs(ay - py)
-        if distancia > 11.0:
+        if distancia > 5.0:
             return AgentConsts.STATE_GO_CENTER
 
         return AgentConsts.STATE_ATTACK
