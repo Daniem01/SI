@@ -81,7 +81,7 @@ class GoToCommandCenter(State):
             if perception[sensor_ev] in self.indestructibles and perception[distancia_ev] < 1.2:
                 # Si el escape también se bloquea, giramos 180 grados más
                 self.evasion_direction = self.Rotate90Degrees(self.Rotate90Degrees(self.evasion_direction))
-                self.evasion_counter = 12
+                self.evasion_counter = AgentConsts.EVASION_MOVE 
             
             accion_final = self.evasion_direction
         
@@ -93,7 +93,7 @@ class GoToCommandCenter(State):
             if perception[sensorf] in self.indestructibles and perception[distanciaf] < 1.2:
                 # Si detectamos un indestuctrible hacemos una evasión inteligente
                 self.evasion_direction = self.Rotate90Degrees(intencionMov)
-                self.evasion_counter = 12  # 12 pasos para esquivar el obstáculo y volver al camino
+                self.evasion_counter = AgentConsts.EVASION_MOVE  
                 
                 accion_final = self.evasion_direction
             else:
@@ -147,10 +147,10 @@ class GoToCommandCenter(State):
         # Hacemos el ProcesaMovimiento
         accion, disparo = self.ProcesaMovimiento(intencion, perception)
 
-        # Si llevabo bloqueda 15 estados consecutivos, se fuerza evasion
-        if self.stuck_counter >= 15:
+        # Si llevabo bloqueda 7 estados consecutivos, se fuerza evasion
+        if self.stuck_counter >= 7:
             self.evasion_direction = self.Rotate90Degrees(intencion)
-            self.evasion_counter = 10 
+            self.evasion_counter = AgentConsts.EVASION_MOVE
             self.stuck_counter = 0
             # Devolvemos la nueva dirección y forzamos disparo para abrir camino
             return self.evasion_direction, True
@@ -168,7 +168,7 @@ class GoToCommandCenter(State):
         if perception[AgentConsts.COMMAND_CENTER_X] < 0:
             return AgentConsts.STATE_EXIT
         # Si el jugador está cerca cambiamos a modo ataque
-        elif 0 <= px and distancia < 11.0:
+        elif 0 <= px and distancia < AgentConsts.ATTACK_RANGE:
             return AgentConsts.STATE_ATTACK
         else:
             return AgentConsts.STATE_GO_CENTER

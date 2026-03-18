@@ -27,6 +27,7 @@ class AgentConsts:
     MOVE_DOWN = 2
     MOVE_RIGHT = 3
     MOVE_LEFT = 4
+    EVASION_MOVE = 5 # Movimiento de evasión cuando el agente detecta que está atascado
 
     #map y valores de la percepción.
     NOTHING = 0
@@ -39,6 +40,7 @@ class AgentConsts:
     LIFE = 7
     SEMI_BREKABLE = 8
     SEMI_UNBREKABLE = 9
+    ATTACK_RANGE = 8 # Distancia a partir de la cual el agente considera que puede atacar al jugador
 
     # Estados
     STATE_GO_CENTER = "GoToCommandCenter"
