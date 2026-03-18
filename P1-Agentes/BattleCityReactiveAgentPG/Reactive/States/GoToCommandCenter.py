@@ -70,7 +70,7 @@ class GoToCommandCenter(State):
             return AgentConsts.MOVE_UP
         return direction
 
-    def ProcesaMovimiento(self, intencionMov, perception, cx, cy, ax, ay):
+    def ProcesaMovimiento(self, intencionMov, perception):
         # Si estamos en una evasion la terminamos
         if self.evasion_counter > 0:
             self.evasion_counter -= 1
@@ -81,7 +81,7 @@ class GoToCommandCenter(State):
             if perception[sensor_ev] in self.indestructibles and perception[distancia_ev] < 1.2:
                 # Si el escape también se bloquea, giramos 180 grados más
                 self.evasion_direction = self.Rotate90Degrees(self.Rotate90Degrees(self.evasion_direction))
-                self.evasion_counter = 6
+                self.evasion_counter = 12
             
             accion_final = self.evasion_direction
         
@@ -93,7 +93,8 @@ class GoToCommandCenter(State):
             if perception[sensorf] in self.indestructibles and perception[distanciaf] < 1.2:
                 # Si detectamos un indestuctrible hacemos una evasión inteligente
                 self.evasion_direction = self.Rotate90Degrees(intencionMov)
-                self.evasion_counter = 6  # 6 pasos para esquivar el obstáculo y volver al camino
+                self.evasion_counter = 12  # 12 pasos para esquivar el obstáculo y volver al camino
+                
                 accion_final = self.evasion_direction
             else:
                 # El camino está libre de objetos indestructibles -> seguimos con la intención original
@@ -119,7 +120,7 @@ class GoToCommandCenter(State):
         
         ax, ay = perception[AgentConsts.AGENT_X], perception[AgentConsts.AGENT_Y]
         cx, cy = perception[AgentConsts.COMMAND_CENTER_X], perception[AgentConsts.COMMAND_CENTER_Y]
-        step_threshold = 0.5 # Margen de alineamiento para considerar que estamos en el eje correcto
+        step_threshold = 1.2 # Margen de alineamiento para considerar que estamos en el eje correcto
 
         # Comparamos la posición actual con la anterior para detectar si estamos atascados
         if self.last_pos is not None:
@@ -144,7 +145,7 @@ class GoToCommandCenter(State):
                 intencion = AgentConsts.MOVE_RIGHT if ax < cx else AgentConsts.MOVE_LEFT
 
         # Hacemos el ProcesaMovimiento
-        accion, disparo = self.ProcesaMovimiento(intencion, perception, cx, cy, ax, ay)
+        accion, disparo = self.ProcesaMovimiento(intencion, perception)
 
         # Si llevabo bloqueda 15 estados consecutivos, se fuerza evasion
         if self.stuck_counter >= 15:
@@ -157,14 +158,17 @@ class GoToCommandCenter(State):
         return accion, disparo
 
     def Transit(self, perception, map):
-        if isinstance(perception, bool) or perception is None: return AgentConsts.STATE_GO_CENTER
+        if isinstance(perception, bool) or perception is None: 
+            return AgentConsts.STATE_GO_CENTER
 
         ax, ay = perception[AgentConsts.AGENT_X], perception[AgentConsts.AGENT_Y]
         px, py = perception[AgentConsts.PLAYER_X], perception[AgentConsts.PLAYER_Y]
-
-        # Si el jugador está cerca cambiamos a modo ataque
         distancia = abs(ax - px) + abs(ay - py)
-        if 0 <= px and distancia < 11.0:
+        # Si no hay command center vamos a ir a la salida
+        if perception[AgentConsts.COMMAND_CENTER_X] < 0:
+            return AgentConsts.STATE_EXIT
+        # Si el jugador está cerca cambiamos a modo ataque
+        elif 0 <= px and distancia < 11.0:
             return AgentConsts.STATE_ATTACK
-
-        return AgentConsts.STATE_GO_CENTER
+        else:
+            return AgentConsts.STATE_GO_CENTER

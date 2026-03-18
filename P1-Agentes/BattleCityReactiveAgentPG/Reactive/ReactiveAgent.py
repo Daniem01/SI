@@ -3,6 +3,7 @@ from StateMachine.StateMachine import StateMachine
 from States.GoToCommandCenter import GoToCommandCenter
 from States.AttackPlayer import AttackPlayer
 from States.AgentConsts import AgentConsts
+from States.GoToExit import GoToExit
 
 
 class ReactiveAgent(BaseAgent):
@@ -10,7 +11,8 @@ class ReactiveAgent(BaseAgent):
         super().__init__(id, name)
         dictionary = {
         "GoToCommandCenter" : GoToCommandCenter(AgentConsts.STATE_GO_CENTER),
-        "AttackPlayer" : AttackPlayer(AgentConsts.STATE_ATTACK)
+        "AttackPlayer" : AttackPlayer(AgentConsts.STATE_ATTACK),
+        "GoToExit" : GoToExit(AgentConsts.STATE_EXIT)
         }
         self.stateMachine = StateMachine("ReactiveBehavior",dictionary,AgentConsts.STATE_GO_CENTER)
 

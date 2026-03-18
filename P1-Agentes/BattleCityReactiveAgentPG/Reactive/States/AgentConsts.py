@@ -43,3 +43,4 @@ class AgentConsts:
     # Estados
     STATE_GO_CENTER = "GoToCommandCenter"
     STATE_ATTACK = "AttackPlayer"
+    STATE_EXIT = "GoToExit"
