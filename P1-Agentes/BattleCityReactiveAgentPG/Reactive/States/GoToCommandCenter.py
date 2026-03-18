@@ -10,10 +10,31 @@ class GoToCommandCenter(State):
             AgentConsts.SEMI_UNBREKABLE,
             AgentConsts.OTHER,
         ]
-
         self.eje_prioritario = "Y"
         self.evasion_counter = 0
-        self.evasion_direction = None      
+        self.evasion_direction = None
+        self.stuck_counter = 0
+        self.last_pos = None
+      
+        # Mapeos para sensores
+        self.sensor_map = {
+            AgentConsts.MOVE_UP: AgentConsts.NEIGHBORHOOD_UP,
+            AgentConsts.MOVE_DOWN: AgentConsts.NEIGHBORHOOD_DOWN,
+            AgentConsts.MOVE_LEFT: AgentConsts.NEIGHBORHOOD_LEFT,
+            AgentConsts.MOVE_RIGHT: AgentConsts.NEIGHBORHOOD_RIGHT,
+        }
+        self.dist_sensor_map = {
+            AgentConsts.MOVE_UP: AgentConsts.NEIGHBORHOOD_DIST_UP,
+            AgentConsts.MOVE_DOWN: AgentConsts.NEIGHBORHOOD_DIST_DOWN,
+            AgentConsts.MOVE_LEFT: AgentConsts.NEIGHBORHOOD_DIST_LEFT,
+            AgentConsts.MOVE_RIGHT: AgentConsts.NEIGHBORHOOD_DIST_RIGHT,
+        }
+        self.rotation_map = {
+            AgentConsts.MOVE_UP: AgentConsts.MOVE_RIGHT,
+            AgentConsts.MOVE_DOWN: AgentConsts.MOVE_LEFT,
+            AgentConsts.MOVE_RIGHT: AgentConsts.MOVE_DOWN,
+            AgentConsts.MOVE_LEFT: AgentConsts.MOVE_UP,
+        }      
 
     def Start(self, agent):
         print("Empieza estado GoToCommandCenter")
@@ -21,100 +42,119 @@ class GoToCommandCenter(State):
     def End(self):
         print("Fin del estado GoToCommandCenter")
 
-    def ProcesaMovimiento(self, intencionMov, perception, alineado):
-        # Obtener sensor frontal según la dirección
-        sensor_frente = self.GetSensor(intencionMov)
-        distancia_frente = self.GetDistSensor(intencionMov)
-
-        # Sistema de evasión de objetos indestructibles
-        # Si estamos en contador de evasión, mantener dirección salvo que haya indestructible delante
-        if self.evasion_counter > 0:
-            # Verificar si hay indestructible justo delante
-            sensor_evasion = self.GetSensor(self.evasion_direction)
-            dist_evasion = self.GetDistSensor(self.evasion_direction)
-            
-            if perception[sensor_evasion] in self.indestructibles and perception[dist_evasion] < 1.2:
-                # Hay indestructible justo delante, girar 90 grados más
-                self.evasion_direction = self.Rotate90Degrees(self.evasion_direction)
-                self.evasion_counter = 5  # Reiniciar contador
-            else:
-                # Seguir en la dirección de evasión
-                self.evasion_counter -= 1
-            
-            return self.evasion_direction
-        
-        # Si no hay contador activo, revisar si hay indestructible delante
-        if perception[sensor_frente] in self.indestructibles and perception[distancia_frente] < 1.2:
-            # Detectado indestructible: girar 90 grados y activar contador
-            self.evasion_direction = self.Rotate90Degrees(intencionMov)
-            self.evasion_counter = 5
-            
-            return self.evasion_direction
-
-        # Si no hay obstáculo, continuar normalmente hacia el objetivo
-        # Reset de evasión para siguiente ciclo limpio
-        self.evasion_direction = None
-        return intencionMov
-    
     def GetSensor(self, action):
-        if action == AgentConsts.MOVE_UP: return AgentConsts.NEIGHBORHOOD_UP
-        if action == AgentConsts.MOVE_DOWN: return AgentConsts.NEIGHBORHOOD_DOWN
-        if action == AgentConsts.MOVE_LEFT: return AgentConsts.NEIGHBORHOOD_LEFT
+        # Devuelve el índice del sensor de vecindad
+        if action == AgentConsts.MOVE_UP:    return AgentConsts.NEIGHBORHOOD_UP
+        if action == AgentConsts.MOVE_DOWN:  return AgentConsts.NEIGHBORHOOD_DOWN
+        if action == AgentConsts.MOVE_LEFT:  return AgentConsts.NEIGHBORHOOD_LEFT
         if action == AgentConsts.MOVE_RIGHT: return AgentConsts.NEIGHBORHOOD_RIGHT
         return AgentConsts.NEIGHBORHOOD_UP
 
     def GetDistSensor(self, action):
-        if action == AgentConsts.MOVE_UP: return AgentConsts.NEIGHBORHOOD_DIST_UP
-        if action == AgentConsts.MOVE_DOWN: return AgentConsts.NEIGHBORHOOD_DIST_DOWN
-        if action == AgentConsts.MOVE_LEFT: return AgentConsts.NEIGHBORHOOD_DIST_LEFT
+        # Devuelve el índice de la distancia del sensor 
+        if action == AgentConsts.MOVE_UP:    return AgentConsts.NEIGHBORHOOD_DIST_UP
+        if action == AgentConsts.MOVE_DOWN:  return AgentConsts.NEIGHBORHOOD_DIST_DOWN
+        if action == AgentConsts.MOVE_LEFT:  return AgentConsts.NEIGHBORHOOD_DIST_LEFT
         if action == AgentConsts.MOVE_RIGHT: return AgentConsts.NEIGHBORHOOD_DIST_RIGHT
         return AgentConsts.NEIGHBORHOOD_DIST_UP
-
+    
     def Rotate90Degrees(self, direction):
-        """Gira 90 grados a la derecha desde la dirección actual"""
+        # Gira 90 grados en sentido horario desde la dirección actual para evasiones
         if direction == AgentConsts.MOVE_UP:
             return AgentConsts.MOVE_RIGHT
-        elif direction == AgentConsts.MOVE_DOWN:
-            return AgentConsts.MOVE_LEFT
         elif direction == AgentConsts.MOVE_RIGHT:
             return AgentConsts.MOVE_DOWN
+        elif direction == AgentConsts.MOVE_DOWN:
+            return AgentConsts.MOVE_LEFT
         elif direction == AgentConsts.MOVE_LEFT:
             return AgentConsts.MOVE_UP
         return direction
 
-    def Update(self, perception, map, agent):
-        if isinstance(perception, bool) or perception is None: return "none", False
+    def ProcesaMovimiento(self, intencionMov, perception, cx, cy, ax, ay):
+        # Si estamos en una evasion la terminamos
+        if self.evasion_counter > 0:
+            self.evasion_counter -= 1
+            # Comprobamos si el camino de evasión se ha bloqueado de repente
+            sensor_ev = self.GetSensor(self.evasion_direction)
+            distancia_ev = self.GetDistSensor(self.evasion_direction)
+            
+            if perception[sensor_ev] in self.indestructibles and perception[distancia_ev] < 1.2:
+                # Si el escape también se bloquea, giramos 180 grados más
+                self.evasion_direction = self.Rotate90Degrees(self.Rotate90Degrees(self.evasion_direction))
+                self.evasion_counter = 6
+            
+            accion_final = self.evasion_direction
+        
+        else:
+            # Si no hay evasión miramos si la intención de movimiento está bloqueada por un indestructible
+            sensorf = self.GetSensor(intencionMov)
+            distanciaf = self.GetDistSensor(intencionMov)
 
+            if perception[sensorf] in self.indestructibles and perception[distanciaf] < 1.2:
+                # Si detectamos un indestuctrible hacemos una evasión inteligente
+                self.evasion_direction = self.Rotate90Degrees(intencionMov)
+                self.evasion_counter = 6  # 6 pasos para esquivar el obstáculo y volver al camino
+                accion_final = self.evasion_direction
+            else:
+                # El camino está libre de objetos indestructibles -> seguimos con la intención original
+                accion_final = intencionMov
+
+        # Logica de disparo
+        sensor_final = self.GetSensor(accion_final)
+        disparar = (perception[sensor_final] == AgentConsts.BRICK)
+
+        return accion_final, disparar
+    
+    def ChooseBestEvationDirection(self, intencionMov, ax, ay, cx, cy):
+        if intencionMov in (AgentConsts.MOVE_UP, AgentConsts.MOVE_DOWN):
+            # Si estoy bloqueado en vertical, miro si el águila está a la derecha o izquierda
+            return AgentConsts.MOVE_RIGHT if ax < cx else AgentConsts.MOVE_LEFT
+        else:
+            # Si estoy bloqueado en horizontal, miro si el águila está arriba o abajo
+            return AgentConsts.MOVE_DOWN if ay < cy else AgentConsts.MOVE_UP
+
+    def Update(self, perception, map, agent):
+        if isinstance(perception, bool) or perception is None:
+            return "none", False
+        
         ax, ay = perception[AgentConsts.AGENT_X], perception[AgentConsts.AGENT_Y]
         cx, cy = perception[AgentConsts.COMMAND_CENTER_X], perception[AgentConsts.COMMAND_CENTER_Y]
+        step_threshold = 0.5 # Margen de alineamiento para considerar que estamos en el eje correcto
 
-        # Calcular dirección hacia Command Center alternando ejes (Y primero, luego X)
-        if self.eje_prioritario == "Y":
-            # Alineación vertical: apuntar hacia cy
-            if abs(ay - cy) < 0.5:
-                # Alineado verticalmente, cambiar a eje horizontal
+        # Comparamos la posición actual con la anterior para detectar si estamos atascados
+        if self.last_pos is not None:
+            if abs(self.last_pos[0] - ax) < 0.05 and abs(self.last_pos[1] - ay) < 0.05:
+                self.stuck_counter += 1
+            else:
+                self.stuck_counter = 0
+        self.last_pos = (ax, ay)
+
+        # Logica de alineamiento
+        if self.eje_prioritario == "X":
+            if abs(ax - cx) > step_threshold:
+                intencion = AgentConsts.MOVE_RIGHT if ax < cx else AgentConsts.MOVE_LEFT
+            else:
+                self.eje_prioritario = "Y"
+                intencion = AgentConsts.MOVE_UP if ay < cy else AgentConsts.MOVE_DOWN
+        else: # Prioridad Y
+            if abs(ay - cy) > step_threshold:
+                intencion = AgentConsts.MOVE_UP if ay < cy else AgentConsts.MOVE_DOWN
+            else:
                 self.eje_prioritario = "X"
                 intencion = AgentConsts.MOVE_RIGHT if ax < cx else AgentConsts.MOVE_LEFT
-            else:
-                # Moverse verticalmente
-                intencion = AgentConsts.MOVE_DOWN if ay < cy else AgentConsts.MOVE_UP
-        else: 
-            # Alineación horizontal: apuntar hacia cx
-            if abs(ax - cx) < 0.5:
-                # Alineado horizontalmente, cambiar a eje vertical
-                self.eje_prioritario = "Y"
-                intencion = AgentConsts.MOVE_DOWN if ay < cy else AgentConsts.MOVE_UP
-            else:
-                # Moverse horizontalmente
-                intencion = AgentConsts.MOVE_RIGHT if ax < cx else AgentConsts.MOVE_LEFT
 
-        # Aplicar sistema de evasión de indestructibles
-        # - Si hay BRICK delante: pasa y lo rompe
-        # - Si hay INDESTRUCTIBLE delante: gira 90° y evade 5 pasos
-        # - Si hay otro INDESTRUCTIBLE en evasión: gira nuevamente
-        accion = self.ProcesaMovimiento(intencion, perception, False)
+        # Hacemos el ProcesaMovimiento
+        accion, disparo = self.ProcesaMovimiento(intencion, perception, cx, cy, ax, ay)
 
-        return accion, False
+        # Si llevabo bloqueda 15 estados consecutivos, se fuerza evasion
+        if self.stuck_counter >= 15:
+            self.evasion_direction = self.Rotate90Degrees(intencion)
+            self.evasion_counter = 10 
+            self.stuck_counter = 0
+            # Devolvemos la nueva dirección y forzamos disparo para abrir camino
+            return self.evasion_direction, True
+
+        return accion, disparo
 
     def Transit(self, perception, map):
         if isinstance(perception, bool) or perception is None: return AgentConsts.STATE_GO_CENTER
