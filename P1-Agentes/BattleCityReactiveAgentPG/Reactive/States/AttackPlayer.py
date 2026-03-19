@@ -116,7 +116,6 @@ class AttackPlayer(State):
         
         ax, ay = perception[AgentConsts.AGENT_X], perception[AgentConsts.AGENT_Y]
         cx, cy = perception[AgentConsts.PLAYER_X], perception[AgentConsts.PLAYER_Y]
-        step_threshold = 1.2 # Margen de alineamiento para considerar que estamos en el eje correcto
 
         # Comparamos la posición actual con la anterior para detectar si estamos atascados
         if self.last_pos is not None:
@@ -128,13 +127,13 @@ class AttackPlayer(State):
 
         # Logica de alineamiento
         if self.eje_prioritario == "X":
-            if abs(ax - cx) > step_threshold:
+            if abs(ax - cx) > AgentConsts.MARGEN_ALINEAMIENTO:
                 intencion = AgentConsts.MOVE_RIGHT if ax < cx else AgentConsts.MOVE_LEFT
             else:
                 self.eje_prioritario = "Y"
                 intencion = AgentConsts.MOVE_UP if ay < cy else AgentConsts.MOVE_DOWN
         else: # Prioridad Y
-            if abs(ay - cy) > step_threshold:
+            if abs(ay - cy) > AgentConsts.MARGEN_ALINEAMIENTO:
                 intencion = AgentConsts.MOVE_UP if ay < cy else AgentConsts.MOVE_DOWN
             else:
                 self.eje_prioritario = "X"
@@ -143,8 +142,8 @@ class AttackPlayer(State):
         # Hacemos el ProcesaMovimiento
         accion, disparo = self.ProcesaMovimiento(intencion, perception)
 
-        # Si lleva bloquedo 7 estados consecutivos, se fuerza evasion
-        if self.stuck_counter >= 7:
+        # Si lleva bloquedo 3 estados consecutivos, se fuerza evasion
+        if self.stuck_counter >= AgentConsts.CICLOS_BLOCKED:
             self.evasion_direction = self.Rotate90Degrees(intencion)
             self.evasion_counter = AgentConsts.EVASION_MOVE
             self.stuck_counter = 0

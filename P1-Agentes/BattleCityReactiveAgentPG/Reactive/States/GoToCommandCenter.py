@@ -106,13 +106,6 @@ class GoToCommandCenter(State):
 
         return accion_final, disparar
     
-    def ChooseBestEvationDirection(self, intencionMov, ax, ay, cx, cy):
-        if intencionMov in (AgentConsts.MOVE_UP, AgentConsts.MOVE_DOWN):
-            # Si estoy bloqueado en vertical, miro si el águila está a la derecha o izquierda
-            return AgentConsts.MOVE_RIGHT if ax < cx else AgentConsts.MOVE_LEFT
-        else:
-            # Si estoy bloqueado en horizontal, miro si el águila está arriba o abajo
-            return AgentConsts.MOVE_DOWN if ay < cy else AgentConsts.MOVE_UP
 
     def Update(self, perception, map, agent):
         if isinstance(perception, bool) or perception is None:
@@ -120,7 +113,6 @@ class GoToCommandCenter(State):
         
         ax, ay = perception[AgentConsts.AGENT_X], perception[AgentConsts.AGENT_Y]
         cx, cy = perception[AgentConsts.COMMAND_CENTER_X], perception[AgentConsts.COMMAND_CENTER_Y]
-        step_threshold = 1.2 # Margen de alineamiento para considerar que estamos en el eje correcto
 
         # Comparamos la posición actual con la anterior para detectar si estamos atascados
         if self.last_pos is not None:
@@ -132,13 +124,13 @@ class GoToCommandCenter(State):
 
         # Logica de alineamiento
         if self.eje_prioritario == "X":
-            if abs(ax - cx) > step_threshold:
+            if abs(ax - cx) > AgentConsts.MARGEN_ALINEAMIENTO:
                 intencion = AgentConsts.MOVE_RIGHT if ax < cx else AgentConsts.MOVE_LEFT
             else:
                 self.eje_prioritario = "Y"
                 intencion = AgentConsts.MOVE_UP if ay < cy else AgentConsts.MOVE_DOWN
         else: # Prioridad Y
-            if abs(ay - cy) > step_threshold:
+            if abs(ay - cy) > AgentConsts.MARGEN_ALINEAMIENTO:
                 intencion = AgentConsts.MOVE_UP if ay < cy else AgentConsts.MOVE_DOWN
             else:
                 self.eje_prioritario = "X"
@@ -147,8 +139,8 @@ class GoToCommandCenter(State):
         # Hacemos el ProcesaMovimiento
         accion, disparo = self.ProcesaMovimiento(intencion, perception)
 
-        # Si llevabo bloqueda 7 estados consecutivos, se fuerza evasion
-        if self.stuck_counter >= 7:
+        # Si llevabo bloqueda 3 estados consecutivos, se fuerza evasion
+        if self.stuck_counter >= AgentConsts.CICLOS_BLOCKED:
             self.evasion_direction = self.Rotate90Degrees(intencion)
             self.evasion_counter = AgentConsts.EVASION_MOVE
             self.stuck_counter = 0

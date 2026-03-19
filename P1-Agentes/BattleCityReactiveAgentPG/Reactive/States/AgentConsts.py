@@ -27,7 +27,9 @@ class AgentConsts:
     MOVE_DOWN = 2
     MOVE_RIGHT = 3
     MOVE_LEFT = 4
-    EVASION_MOVE = 5 # Movimiento de evasión cuando el agente detecta que está atascado
+    EVASION_MOVE = 2 # Movimiento de evasión cuando el agente detecta que está atascado
+    MARGEN_ALINEAMIENTO = 1 # Margen de alineamiento para considerar que estamos en el eje correcto
+    CICLOS_BLOCKED = 3 # Número de ciclos consecutivos que el agente considera que está bloqueado antes de forzar una evasión
 
     #map y valores de la percepción.
     NOTHING = 0
