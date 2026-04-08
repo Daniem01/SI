@@ -14,6 +14,8 @@ class BCNode(Node):
         if other == None:
             return False
         #TODO: dos nodos son iguales cuando sus coordenadas x e y son iguales.
+        if self.x == other.x and self.y == other.y
+            return True
         print("Aqui falta ncosas por hacer :) ")
         return False
 
