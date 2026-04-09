@@ -11,7 +11,7 @@ class BCNode(Node):
         return f"BCNode(x={self.x}, y={self.y})"
 
     def __eq__(self, other):
-        #Comprobamos que comparamos un BCNode y que no este vacio
+        # Comprobamos que comparamos un BCNode y que no este vacio
         if other is None:
             return False
     

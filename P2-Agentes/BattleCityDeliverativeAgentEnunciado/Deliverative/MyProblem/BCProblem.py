@@ -29,17 +29,31 @@ class BCProblem(Problem):
                 s += ("[" + str(i) + "," + str(j) + "," + str(self.map[i][j]) +"]")
             print(s)
 
-    #Calcula la heuristica del nodo en base al problema planteado (Se necesita reimplementar)
+    #Calcula la heuristica del nodo en base al problema planteado
     def Heuristic(self, node):
-        #TODO: heurística del nodo
-        print("Aqui falta ncosas por hacer :) ")
-        return 0
+        # Si no hay objetivo devolvemos 0
+        if self.goal is None:
+            return 0
+        # Usamos la Distancia de Manhattan
+        dist_x = abs(node.x - self.goal.x)
+        dist_y = abs(node.y - self.goal.y)
+        return dist_x + dist_y
 
     #Genera la lista de sucesores del nodo (Se necesita reimplementar)
     def GetSucessors(self, node):
         successors = []
-        #TODO: sucesores de un nodo dado
-        print("Aqui falta ncosas por hacer :) ")
+        direcciones = [(1,0), (-1,0),(0,1), (0,-1)] # Direcciones posibles
+
+        for dx, dy in direcciones:
+            # Calulamos la posicion que tendra despues del movimiento para ver si es una posicion valida
+            nx, ny = node.x + dx, node.y + dy
+
+            if 0 <= nx < self.xSize and 0 <= ny < self.ySize:
+                casilla = self.map[nx][ny]
+                # Si te puedes mover hacia esa casilla creamos un nodo y lo metemos en sucessors como camino posible
+                if BCProblem.CanMove(casilla):
+                    self.CreateNode(successors, node, nx, ny)
+
         return successors
     
     #métodos estáticos
@@ -47,7 +61,7 @@ class BCProblem(Problem):
     #parámetro
     @staticmethod
     def CanMove(value):
-        return value != AgentConsts.UNBREAKABLE and value != AgentConsts.SEMI_UNBREKABLE and value != AgentConsts.SEMI_UNBREKABLE
+        return value != AgentConsts.UNBREAKABLE and value != AgentConsts.SEMI_UNBREKABLE
     
     #convierte coordenadas mapa en formato vector a matriz
     @staticmethod
@@ -92,9 +106,23 @@ class BCProblem(Problem):
     #crea un nodo y lo añade a successors (lista) con el padre indicado y la posición x,y en coordenadas mapa 
     @staticmethod
     def GetCost(value):
-        #TODO: debes darle un coste a cada tipo de casilla del mapa.
-        print("Aqui falta ncosas por hacer :) ")
-        return sys.maxsize
+        # Damos un coste a cada tipo de casilla del mapa.
+        if value is AgentConsts.NOTHING:
+            return 1
+        elif value is AgentConsts.BRICK: # Consideramos que romper el bloque es 3 veces mas costoso que ir por un camino normal
+            return 3
+        elif value is AgentConsts.SEMI_BREKABLE: # Consideramos que romper este bloque es 5 veces mas costoso que ir por un camino normal
+            return 5         
+        elif value is AgentConsts.UNBREAKABLE:
+            return sys.maxsize
+        elif value is AgentConsts.SEMI_UNBREKABLE:
+            return sys.maxsize
+        elif value is AgentConsts.COMMAND_CENTER:
+            return 1
+        elif value is AgentConsts.LIFE:
+            return 1
+        else:
+            return sys.maxsize
     
     def CreateNode(self,successors,parent,x,y):
         value=self.map[x][y]
