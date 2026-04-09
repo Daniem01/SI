@@ -11,18 +11,14 @@ class BCNode(Node):
         return f"BCNode(x={self.x}, y={self.y})"
 
     def __eq__(self, other):
-        if other == None:
+        #Comprobamos que comparamos un BCNode y que no este vacio
+        if other is None:
             return False
-        #TODO: dos nodos son iguales cuando sus coordenadas x e y son iguales.
-        if self.x == other.x and self.y == other.y
-            return True
-        print("Aqui falta ncosas por hacer :) ")
-        return False
+    
+        if not isinstance(other, BCNode):
+            return False
+        
+        return self.x == other.x and self.y == other.y
 
     def __hash__(self):
         return hash((self.x, self.y))
-    
-
-
-
-    
