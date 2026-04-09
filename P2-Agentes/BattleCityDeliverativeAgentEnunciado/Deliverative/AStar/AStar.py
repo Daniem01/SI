@@ -29,7 +29,8 @@ class AStar:
     def _ConfigureNode(self, node, parent, newG):
         node.SetParent(parent)
         node.SetG(newG)
-        #TODO Setearle la heuristica que está implementada en el problema. (si ya la tenía será la misma pero por si reutilizais este método para otras cosas)
+        # Seteamos la heuristica
+        node.SetH(self.problem.Heuristic(node))
 
 
     def ApendInOpen(self, node):
@@ -52,8 +53,14 @@ class AStar:
     #reconstruye el path desde la meta encontrada.
     def ReconstructPath(self, goal):
         path = []
-        #TODO: devuelve el path invertido desde la meta hasta que el padre sea None.
-        return path
+        current = goal
+        # Devolvemos el path invertido desde la meta hasta que el padre sea None.
+        while current is not None:
+            path.append(current)
+            current = current.parent
+
+        # Tenemos la ruta pero Meta -> Inicio asi que se tiene que invertir [::-1]
+        return path[::-1]
 
 
 
