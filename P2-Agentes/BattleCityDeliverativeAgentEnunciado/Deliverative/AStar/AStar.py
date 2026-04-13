@@ -24,53 +24,50 @@ class AStar:
 
          #mientras no encontremos la meta y haya elementos en open....
         while len(self.open) > 0 and not findGoal:
-            
-            # cogemos nodo con menor F (G+H) de la lista open
-            current = min(self.open, key=lambda node: node.GetF())
-            self.open.remove(current)
-            
-            # es la meta?
-            if self.problem.IsGoal(current):
-                findGoal = True
-                path = self.ReconstructPath(current)
-                break
-            
-            # marco como procesado
-            self.precessed.append(current)
-            
-            # getteamos sus sucesores (casillas vecinas accesibles)
-            successors = self.problem.GetSucessors(current)
-            
-            # si no hay sucesores, no hay solucion
-            if len(successors) == 0:
-                return []
-            
-            for successor in successors:
-                # si ya fue procesado  lo ignoramos
-                if successor in self.precessed:
-                    continue
                 
-                # calculamos nuevo coste G para llegar a este sucesor
-                newG = current.GetG() + self.problem.GetCost(successor.GetValue())
+                # cogemos nodo con menor F (G+H) de la lista open
+                current = min(self.open, key=lambda node: node.F())
+                self.open.remove(current)
                 
-                # compruebo si esta ya en open
-                inOpen = self.GetSucesorInOpen(successor)
+                # es la meta?
+                if self.problem.IsASolution(current):
+                    findGoal = True
+                    path = self.ReconstructPath(current)
+                    break
                 
-                if inOpen is None:
-                    # si no esta en open,lo configuramos y añadimos
-                    self._ConfigureNode(successor, current, newG)
-                    self.open.append(successor)
-                else:
-                    # si esta en open, ha encontrado un camino mas barato?
-                    if newG < inOpen.GetG():
-                        # actualizamos padre y coste
-                        self._ConfigureNode(inOpen, current, newG)
+                # marcamos como procesado
+                self.precessed.add(current)
+                
+                # generamos sucesores
+                successors = self.problem.GetSucessors(current)
+                
+                # si no hay sucesores no hay solucion
+                if len(successors) == 0:
+                    return []
+                
+                for successor in successors:
+                    # si ya fue procesado lo ignoramos
+                    if successor in self.precessed:
+                        continue
+                    
+                    # calculamos nuevo coste G
+                    newG = current.G() + successor.g
+                    
+                    # comprobamos si esta en open
+                    inOpen = self.GetSucesorInOpen(successor)
+                    
+                    if inOpen is None:
+                        self._ConfigureNode(successor, current, newG)
+                        self.open.append(successor)
+                    else:
+                        # si encontramos camino mas barato, actualizamos
+                        if newG < inOpen.G():
+                            self._ConfigureNode(inOpen, current, newG)
 
-        # si no encontramos la meta devolvemos path vacio
-        if not findGoal:
-            return []
-        
-        return path
+                if not findGoal:
+                    return []
+                
+                return path
     
 
     #nos permite configurar un nodo (node) con el padre y la nueva G
