@@ -58,15 +58,20 @@ class GoalOrientedAgent(BaseAgent):
         return action, shot
     
     def _CreatePlan(self,perception,map):
-        #currentGoal = self.problem.GetGoal()
         if self.goalMonitor != None:
-            #TODO creamos un plan, pasos:
-            #-con gualMonito, seleccionamos la meta actual (Que será la mas propicia => definir la estrategia a seguir).
-            #-le damos el modo inicial _CreateInitialNode
-            #-establecer la meta actual al problema para que A* sepa cual es.
-            #-Calcular el plan usando A*
-            print("TODO aqui faltan cosas :)")
-        return self.aStar.GetPlan()
+            # Seleccionamos la meta mas util ahora mismo
+            currentGoal = self.goalMonitor.SelectGoal(perception, map, self)
+            # nodo inicial es el nodo en el q estamos ahora
+            initialNode = self._CreateInitialNode(perception)
+            
+            # le decimos al problema cual es el inicio y la meta
+            self.problem.SetInitial(initialNode)
+            self.problem.SetGoal(currentGoal)
+            
+            # calcular el plan con A*
+            return self.aStar.GetPlan()
+        
+        return []
         
     @staticmethod
     def CreateNodeByPerception(perception, value, perceptionID_X, perceptionID_Y,ySize):
@@ -95,17 +100,28 @@ class GoalOrientedAgent(BaseAgent):
     def InitAgent(self,perception,map):
         #creamos el problema
         #creamos el problema
-        #TODO inicializamos:
+        # inicializamos:
         # - creamos el problema con BCProblem
         # - inicializamos el mapa problem.InitMap
         # - inicializamos A*
         # - creamos un plan inicial
-        print("TODO aqui faltan cosas :)")
-        goal1CommanCenter = None
+        
+        # creamos el problema con el tamaño del mapa (15x15)
+        initialNode = self._CreateInitialNode(perception)
+        goal1CommanCenter = self._CreateDefaultGoal(perception)
+        self.problem = BCProblem(initialNode, goal1CommanCenter, 15, 15)
+
+         # inicializamos el mapa y el algoritmo A*
+        self.problem.InitMap(map)
+        self.aStar = AStar(self.problem)
+
         goal2Life = self._CreateLifeGoal(perception)
         goal3Player = self._CreatePlayerGoal(perception)
         exitGoal = self._CreateExitGoal(perception)
         self.goalMonitor = GoalMonitor(self.problem,[goal1CommanCenter,goal2Life,goal3Player],exitGoal)
+
+        #creamos el plan inicial
+        self.plan = self._CreatePlan(perception, map)
 
     @staticmethod
     def ShowPlan(plan):
