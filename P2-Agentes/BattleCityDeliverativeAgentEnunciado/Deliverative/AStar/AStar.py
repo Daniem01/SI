@@ -41,10 +41,6 @@ class AStar:
                 # generamos sucesores
                 successors = self.problem.GetSucessors(current)
                 
-                # si no hay sucesores no hay solucion
-                if len(successors) == 0:
-                    return []
-                
                 for successor in successors:
                     # si ya fue procesado lo ignoramos
                     if successor in self.precessed:
@@ -64,10 +60,11 @@ class AStar:
                         if newG < inOpen.G():
                             self._ConfigureNode(inOpen, current, newG)
 
-                if not findGoal:
-                    return []
-                
-                return path
+        # Devolvemos si hay un path (fuera del bucle para que siga buscando)
+        if not findGoal:
+            return []
+        else:      
+            return path
     
 
     #nos permite configurar un nodo (node) con el padre y la nueva G
