@@ -16,7 +16,7 @@ class Attack(State):
 
         # si no puedo disparar aun, sigo orientandome en esa direccion
         move = direction + 1  # perception dir 0..3 -> move 1..4
-        return move, False
+        return move, True
 
     def Transit(self, perception, map):
         target = perception[self.directionToLook] if hasattr(self, "directionToLook") else -1

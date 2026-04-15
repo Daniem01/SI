@@ -1,5 +1,6 @@
 import random
 from States.AgentConsts import AgentConsts
+from MyProblem.BCProblem import BCProblem
 
 class GoalMonitor:
 
@@ -14,9 +15,23 @@ class GoalMonitor:
         self.problem = problem
         self.lastTime = -1
         self.recalculate = False
+        self.was_in_radius = False
+        self.HUNTING_RADIUS = 6.0 
 
     def ForceToRecalculate(self):
         self.recalculate = True
+
+    def IsPlayerAlive(self, perception):
+        return perception[AgentConsts.PLAYER_X] != -1 and perception[AgentConsts.PLAYER_Y] != -1
+
+    def IsCCAlive(self, perception):
+        return perception[AgentConsts.COMMAND_CENTER_X] != -1 and perception[AgentConsts.COMMAND_CENTER_Y] != -1
+
+    def IsPlayerInRadius(self, perception):
+        if not self.IsPlayerAlive(perception):
+            return False
+        dist = self.GetDistanceToPlayer(perception)
+        return dist <= self.HUNTING_RADIUS
 
     def NeedReplaning(self, perception, map, agent):
         if self.recalculate:
@@ -26,56 +41,61 @@ class GoalMonitor:
 
         currentTime = perception[AgentConsts.TIME]
 
+        # Comprobar umbral de tiempo
         if currentTime - self.lastTime > 4.5:
             self.lastTime = currentTime
             return True
 
-        if perception[AgentConsts.HEALTH] <= 1:
-            self.lastTime = currentTime
+        # El jugador ha entrado o salido del radio de caza
+        in_radius = self.IsPlayerInRadius(perception)
+        if not hasattr(self, 'was_in_radius'): self.was_in_radius = in_radius
+        if in_radius != self.was_in_radius:
+            self.was_in_radius = in_radius
             return True
 
-        cc_alive = not (
-            perception[AgentConsts.COMMAND_CENTER_X] == -1 and
-            perception[AgentConsts.COMMAND_CENTER_Y] == -1
-        )
+        # Salud baja
+        if perception[AgentConsts.HEALTH] <= 1:
+            return True
 
-        # solo persigo cambios del player cuando el CC ya no existe
-        if not cc_alive:
-            px = perception[AgentConsts.PLAYER_X]
-            py = perception[AgentConsts.PLAYER_Y]
-            if px != agent.last_player_x or py != agent.last_player_y:
-                agent.last_player_x = px
-                agent.last_player_y = py
-                self.lastTime = currentTime
-                return True
+        # Si el jugador o el CC han muerto el plan anterior ya no es valido
+        if not self.IsCCAlive(perception) or not self.IsPlayerAlive(perception):
+            return True
 
         return False
+    
+    def GetDistanceToPlayer(self, perception):
+        dist_x = abs(perception[AgentConsts.AGENT_X] - perception[AgentConsts.PLAYER_X])
+        dist_y = abs(perception[AgentConsts.AGENT_Y] - perception[AgentConsts.PLAYER_Y])
+        return (dist_x + dist_y) / 2 
 
     def SelectGoal(self, perception, map, agent):
-        cc_alive = not (
-            perception[AgentConsts.COMMAND_CENTER_X] == -1 and
-            perception[AgentConsts.COMMAND_CENTER_Y] == -1
-        )
+        player_alive = self.IsPlayerAlive(perception)
+        cc_alive = self.IsCCAlive(perception)
+        
+        # Si el CC ha muerto o el Jugador ha muerto ---> salida
+        mission_complete = (not cc_alive) or (not player_alive)
 
-        if not cc_alive:
-            self.goals[GoalMonitor.GOAL_COMMAND_CENTRER] = None
-
+        # Buscamos vida
         if perception[AgentConsts.HEALTH] <= 1 and self.goals[GoalMonitor.GOAL_LIFE] is not None:
             return self.goals[GoalMonitor.GOAL_LIFE]
 
-        # prioridad 1: CC
+        # Modo caza
+        if self.IsPlayerInRadius(perception):
+            return self.goals[GoalMonitor.GOAL_PLAYER]
+
+        # Vamos a la salida
+        if mission_complete and self.finalGoal is not None:
+            return self.finalGoal
+
+        # CC
         if cc_alive and self.goals[GoalMonitor.GOAL_COMMAND_CENTRER] is not None:
             return self.goals[GoalMonitor.GOAL_COMMAND_CENTRER]
 
-        # prioridad 2: salida, solo cuando el CC ya no existe
-        if not cc_alive and self.finalGoal is not None:
-            return self.finalGoal
-
-        # prioridad 3: player
-        if self.goals[GoalMonitor.GOAL_PLAYER] is not None:
+        # Ultima opcion si no hay nada que hacer ---> cazar al jugador
+        if player_alive and self.goals[GoalMonitor.GOAL_PLAYER] is not None:
             return self.goals[GoalMonitor.GOAL_PLAYER]
 
-        return None
-
+        return self.finalGoal
+    
     def UpdateGoals(self, goal, goalId):
         self.goals[goalId] = goal
