@@ -27,6 +27,9 @@ class GoalOrientedAgent(BaseAgent):
         self.plan = None
         self.goalMonitor = None
         self.agentInit = False
+        self.entry_from_plan = False
+        self.last_player_x = -1
+        self.last_player_y = -1
 
     #Metodo que se llama al iniciar el agente. No devuelve nada y sirve para contruir el agente
     def Start(self):
@@ -42,24 +45,29 @@ class GoalOrientedAgent(BaseAgent):
     #Devuelve la acción o el disparo si o no
     def Update(self, perception, map):
         if perception == True or perception == False:
-            return 0,True
+            return 0, True
+
         if not self.agentInit:
-            self.InitAgent(perception,map)
+            self.InitAgent(perception, map)
             self.agentInit = True
 
         action, shot = self.stateMachine.Update(perception, map, self)
 
-        #Actualizamos el plan
         goal3Player = self._CreatePlayerGoal(perception)
-        self.goalMonitor.UpdateGoals(goal3Player,2)
-        if self.goalMonitor.NeedReplaning(perception,map,self):
-            self.problem.InitMap(map) ## refrescamos el mapa
-            self.plan=self._CreatePlan(perception, map)
+        self.goalMonitor.UpdateGoals(goal3Player, GoalMonitor.GOAL_PLAYER)
+
+        exitGoal = self._CreateExitGoal(perception)
+        self.goalMonitor.finalGoal = exitGoal
+
+        if self.goalMonitor.NeedReplaning(perception, map, self):
+            self.problem.InitMap(map)
+            self.plan = self._CreatePlan(perception, map)
+
         return action, shot
     
     def _CreatePlan(self,perception,map):
         if self.goalMonitor != None:
-            # Seleccionamos la meta mas util ahora mismo
+            # seleccionamos la meta mas util ahora mismo
             currentGoal = self.goalMonitor.SelectGoal(perception, map, self)
             # nodo inicial es el nodo en el q estamos ahora
             initialNode = self._CreateInitialNode(perception)
@@ -67,9 +75,12 @@ class GoalOrientedAgent(BaseAgent):
             # le decimos al problema cual es el inicio y la meta
             self.problem.SetInitial(initialNode)
             self.problem.SetGoal(currentGoal)
-            
+
+            # guardo por si acaso
+            self.plan = self.aStar.GetPlan()
+
             # calcular el plan con A*
-            return self.aStar.GetPlan()
+            return self.plan
         
         return []
         
@@ -91,6 +102,7 @@ class GoalOrientedAgent(BaseAgent):
     def _CreateInitialNode(self, perception):
         node = GoalOrientedAgent.CreateNodeByPerception(perception,AgentConsts.NOTHING,AgentConsts.AGENT_X,AgentConsts.AGENT_Y,15)
         node.SetG(0)
+        node.SetH(0)
         return node
     
     def _CreateDefaultGoal(self, perception):

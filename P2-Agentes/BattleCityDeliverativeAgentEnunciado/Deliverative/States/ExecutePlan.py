@@ -45,7 +45,7 @@ class ExecutePlan(State):
             nextNode = plan[0]
         goal = agent.problem.GetGoal()
         ## si estoy a distancia 1 del objetivo me paro
-        if  len(plan) <= 1 and (goal.value == AgentConsts.PLAYER or goal.value == AgentConsts.COMMAND_CENTER): 
+        if  len(plan) <= 2 and (goal.value == AgentConsts.PLAYER or goal.value == AgentConsts.COMMAND_CENTER): 
             self.transition = "Attack"
             move = self.GetDirection(nextNode,x,y)
             agent.directionToLook = move-1 ## la percepción es igual que el movimiento pero restando 1                

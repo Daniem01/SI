@@ -7,6 +7,7 @@ class GoalMonitor:
     GOAL_LIFE = 1
     GOAL_PLAYER = 2
     GOAL_EXIT = 3
+
     def __init__(self, problem, goals, finalGoal):
         self.goals = goals
         self.finalGoal = finalGoal
@@ -19,38 +20,62 @@ class GoalMonitor:
 
     def NeedReplaning(self, perception, map, agent):
         if self.recalculate:
+            self.recalculate = False
             self.lastTime = perception[AgentConsts.TIME]
             return True
 
-        # replanifico cada 50 uds de tiempo(50 de momento, ir viendo q funciona mejor luego)
         currentTime = perception[AgentConsts.TIME]
-        if currentTime - self.lastTime > 50:
+
+        if currentTime - self.lastTime > 4.5:
             self.lastTime = currentTime
             return True
-        
-        # replanificamos tb si tenemos poca vida (1 o menos)
+
         if perception[AgentConsts.HEALTH] <= 1:
             self.lastTime = currentTime
             return True
-        
+
+        cc_alive = not (
+            perception[AgentConsts.COMMAND_CENTER_X] == -1 and
+            perception[AgentConsts.COMMAND_CENTER_Y] == -1
+        )
+
+        # solo persigo cambios del player cuando el CC ya no existe
+        if not cc_alive:
+            px = perception[AgentConsts.PLAYER_X]
+            py = perception[AgentConsts.PLAYER_Y]
+            if px != agent.last_player_x or py != agent.last_player_y:
+                agent.last_player_x = px
+                agent.last_player_y = py
+                self.lastTime = currentTime
+                return True
+
         return False
-    
-    #selecciona la meta mas adecuada al estado actual
+
     def SelectGoal(self, perception, map, agent):
-        # si tiene poca vida y existe el power up de vida, vamos a por el
+        cc_alive = not (
+            perception[AgentConsts.COMMAND_CENTER_X] == -1 and
+            perception[AgentConsts.COMMAND_CENTER_Y] == -1
+        )
+
+        if not cc_alive:
+            self.goals[GoalMonitor.GOAL_COMMAND_CENTRER] = None
+
         if perception[AgentConsts.HEALTH] <= 1 and self.goals[GoalMonitor.GOAL_LIFE] is not None:
             return self.goals[GoalMonitor.GOAL_LIFE]
-        
-        # si existe el comand center vamos a por el
-        if self.goals[GoalMonitor.GOAL_COMMAND_CENTRER] is not None:
+
+        # prioridad 1: CC
+        if cc_alive and self.goals[GoalMonitor.GOAL_COMMAND_CENTRER] is not None:
             return self.goals[GoalMonitor.GOAL_COMMAND_CENTRER]
-        
-        # si no, perseguimos al jugador
+
+        # prioridad 2: salida, solo cuando el CC ya no existe
+        if not cc_alive and self.finalGoal is not None:
+            return self.finalGoal
+
+        # prioridad 3: player
         if self.goals[GoalMonitor.GOAL_PLAYER] is not None:
             return self.goals[GoalMonitor.GOAL_PLAYER]
 
-        # meta aleatoria de las disponibles como ultimo recurso
-        return self.goals[random.randint(0,len(self.goals))]
-    
-    def UpdateGoals(self,goal, goalId):
+        return None
+
+    def UpdateGoals(self, goal, goalId):
         self.goals[goalId] = goal

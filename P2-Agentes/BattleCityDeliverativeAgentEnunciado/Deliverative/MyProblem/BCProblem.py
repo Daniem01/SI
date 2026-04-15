@@ -106,20 +106,23 @@ class BCProblem(Problem):
     #crea un nodo y lo añade a successors (lista) con el padre indicado y la posición x,y en coordenadas mapa 
     @staticmethod
     def GetCost(value):
-        # Damos un coste a cada tipo de casilla del mapa.
-        if value is AgentConsts.NOTHING:
+        if value == AgentConsts.NOTHING:
             return 1
-        elif value is AgentConsts.BRICK: # Consideramos que romper el bloque es 3 veces mas costoso que ir por un camino normal
+        elif value == AgentConsts.BRICK:
             return 3
-        elif value is AgentConsts.SEMI_BREKABLE: # Consideramos que romper este bloque es 5 veces mas costoso que ir por un camino normal
-            return 5         
-        elif value is AgentConsts.UNBREAKABLE:
+        elif value == AgentConsts.SEMI_BREKABLE:
+            return 5
+        elif value == AgentConsts.UNBREAKABLE:
             return sys.maxsize
-        elif value is AgentConsts.SEMI_UNBREKABLE:
+        elif value == AgentConsts.SEMI_UNBREKABLE:
             return sys.maxsize
-        elif value is AgentConsts.COMMAND_CENTER:
+        elif value == AgentConsts.COMMAND_CENTER:
             return 1
-        elif value is AgentConsts.LIFE:
+        elif value == AgentConsts.LIFE:
+            return 1
+        elif value == AgentConsts.PLAYER:
+            return 1
+        elif value == AgentConsts.EXIT:
             return 1
         else:
             return sys.maxsize
